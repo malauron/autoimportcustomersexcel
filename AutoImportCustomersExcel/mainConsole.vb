@@ -11,7 +11,7 @@ Module mainConsole
     Dim vDatabase As String
 
     Sub Main()
-        Radisson()
+        Autoliv()
     End Sub
 
     Sub Knowles()
@@ -320,11 +320,13 @@ Module mainConsole
                     Dim mCurrentDate As DateTime
                     Dim mValidDate1 As DateTime
                     Dim mValidDate2 As DateTime
+                    Dim plantName As String = ""
 
-                    NetOpen(mSystemParameters, "select customer_file_path,customer_file_path_date,NOW() curdatetime   " & _
+                    NetOpen(mSystemParameters, "select plant_name, customer_file_path,customer_file_path_date,NOW() curdatetime   " & _
                                                "from system_parameters", cn.Connection)
                     If mSystemParameters.Rows.Count > 0 Then
                         For Each mRow As DataRow In mSystemParameters.Rows
+                            plantName = mRow.Item("plant_name")
                             mCustomerFilePath = mRow.Item("customer_file_path")
                             mPreviousFileDate = Format(CType(mRow.Item("customer_file_path_date"), DateTime), "MM/dd/yyyy HH:mm:ss")
                             mCurrentDate = Format(CType(mRow.Item("curdatetime"), DateTime), "MM/dd/yyyy HH:mm:ss")
@@ -407,74 +409,82 @@ Module mainConsole
                                 Console.Write("Status : " & Format(mRowCtr / xlRange.Rows.Count * 100, "###") & "%" & vbCr)
                                 isNew = True
 
-                                mCommand.Parameters.Item("@customer_code").Value = Trim(CType(xlRange.Cells(xlRow, 3).Text, String))
-                                mCommand.Parameters.Item("@customersubgroup_name").Value = Trim(CType(xlRange.Cells(xlRow, 8).Text, String))
-                                mCommand.Parameters.Item("@customer_name").Value = Trim(CType(xlRange.Cells(xlRow, 4).Text, String)) & ", " & _
-                                               Trim(CType(xlRange.Cells(xlRow, 5).Text, String)) & " " & Trim(CType(xlRange.Cells(xlRow, 6).Text, String)) & " " & _
-                                               Trim(CType(xlRange.Cells(xlRow, 7).Text, String))
+                                If plantName = Trim(CType(xlRange.Cells(xlRow, 2).Text, String)) Then
 
-                                hasRegularCharges = Trim(CType(xlRange.Cells(xlRow, 11).Text, String))
-                                hasRegularSubsidy = Trim(CType(xlRange.Cells(xlRow, 9).Text, String))
-                                hasOtSubsidy = Trim(CType(xlRange.Cells(xlRow, 10).Text, String))
+                                    mCommand.Parameters.Item("@customer_code").Value = Trim(CType(xlRange.Cells(xlRow, 3).Text, String))
+                                    mCommand.Parameters.Item("@customersubgroup_name").Value = Trim(CType(xlRange.Cells(xlRow, 8).Text, String))
+                                    mCommand.Parameters.Item("@customer_name").Value = Trim(CType(xlRange.Cells(xlRow, 4).Text, String)) & ", " & _
+                                                   Trim(CType(xlRange.Cells(xlRow, 5).Text, String)) & " " & Trim(CType(xlRange.Cells(xlRow, 6).Text, String)) & " " & _
+                                                   Trim(CType(xlRange.Cells(xlRow, 7).Text, String))
 
-                                mCommand.CommandText = "select customer_id from customers where customer_code = @customer_code"
-                                rdQuery = mCommand.ExecuteReader
+                                    hasRegularCharges = Trim(CType(xlRange.Cells(xlRow, 11).Text, String))
+                                    hasRegularSubsidy = Trim(CType(xlRange.Cells(xlRow, 9).Text, String))
+                                    hasOtSubsidy = Trim(CType(xlRange.Cells(xlRow, 10).Text, String))
 
-                                '***Check for duplicate customer code
-                                If rdQuery.HasRows Then
-                                    isNew = False
-                                    While rdQuery.Read
-                                        mCommand.Parameters.Item("@customer_id").Value = Convert.ToInt32(rdQuery.Item("customer_id"))
-                                    End While
-                                End If
-                                rdQuery.Close()
+                                    If Trim(CType(xlRange.Cells(xlRow, 13).Text, String)) <> "" Then
+                                        regularCharges = CType(xlRange.Cells(xlRow, 13).Text, Double)
+                                    End If
 
-                                mCommand.CommandText = "select customergroup_id,customersubgroup_id from customersubgroups where customersubgroup_name = @customersubgroup_name"
-                                rdQuery = mCommand.ExecuteReader
+                                    mCommand.CommandText = "select customer_id from customers where customer_code = @customer_code"
+                                    rdQuery = mCommand.ExecuteReader
 
-                                If rdQuery.HasRows Then
-                                    While rdQuery.Read
-                                        mCommand.Parameters.Item("@customergroup_id").Value = Convert.ToInt32(rdQuery.Item("customergroup_id"))
-                                        mCommand.Parameters.Item("@customersubgroup_id").Value = Convert.ToInt32(rdQuery.Item("customersubgroup_id"))
-                                    End While
-                                Else
-                                    mCommand.Parameters.Item("@customergroup_id").Value = defaultCustomergroupId
-                                    mCommand.Parameters.Item("@customersubgroup_id").Value = defaultCustomersubgroupId
-                                End If
-                                rdQuery.Close()
+                                    '***Check for duplicate customer code
+                                    If rdQuery.HasRows Then
+                                        isNew = False
+                                        While rdQuery.Read
+                                            mCommand.Parameters.Item("@customer_id").Value = Convert.ToInt32(rdQuery.Item("customer_id"))
+                                        End While
+                                    End If
+                                    rdQuery.Close()
 
-                                If isNew Then
-                                    mCommand.CommandText = "insert into customers (officeaddress,customer_name,customer_code,customergroup_id,customersubgroup_id) values " & _
-                                                            "('',@customer_name,@customer_code,@customergroup_id,@customersubgroup_id) "
+                                    mCommand.CommandText = "select customergroup_id,customersubgroup_id from customersubgroups where customersubgroup_name = @customersubgroup_name"
+                                    rdQuery = mCommand.ExecuteReader
+
+                                    If rdQuery.HasRows Then
+                                        While rdQuery.Read
+                                            mCommand.Parameters.Item("@customergroup_id").Value = Convert.ToInt32(rdQuery.Item("customergroup_id"))
+                                            mCommand.Parameters.Item("@customersubgroup_id").Value = Convert.ToInt32(rdQuery.Item("customersubgroup_id"))
+                                        End While
+                                    Else
+                                        mCommand.Parameters.Item("@customergroup_id").Value = defaultCustomergroupId
+                                        mCommand.Parameters.Item("@customersubgroup_id").Value = defaultCustomersubgroupId
+                                    End If
+                                    rdQuery.Close()
+
+                                    If isNew Then
+                                        mCommand.CommandText = "insert into customers (officeaddress,customer_name,customer_code,customergroup_id,customersubgroup_id) values " & _
+                                                                "('',@customer_name,@customer_code,@customergroup_id,@customersubgroup_id) "
+                                        mCommand.ExecuteNonQuery()
+                                        mCommand.Parameters.Item("@customer_id").Value = CType(mCommand.LastInsertedId, Integer)
+                                    Else
+                                        mCommand.CommandText = "update customers set officeaddress='', customer_name=@customer_name, " & _
+                                                                "customergroup_id=@customergroup_id,customersubgroup_id=@customersubgroup_id " & _
+                                                                "where customer_id=@customer_id"
+                                        mCommand.ExecuteNonQuery()
+                                    End If
+
+                                    mCommand.CommandText = "DELETE FROM customer_allowablecharges WHERE customer_id = @customer_id"
                                     mCommand.ExecuteNonQuery()
-                                    mCommand.Parameters.Item("@customer_id").Value = CType(mCommand.LastInsertedId, Integer)
-                                Else
-                                    mCommand.CommandText = "update customers set officeaddress='', customer_name=@customer_name, " & _
-                                                            "customergroup_id=@customergroup_id,customersubgroup_id=@customersubgroup_id " & _
-                                                            "where customer_id=@customer_id"
-                                    mCommand.ExecuteNonQuery()
-                                End If
-
-                                mCommand.CommandText = "DELETE FROM customer_allowablecharges WHERE customer_id = @customer_id"
-                                mCommand.ExecuteNonQuery()
 
 
-                                If hasRegularCharges = "Y" Then
-                                    mCommand.CommandText = "insert into customer_allowablecharges (customer_id,chargetype_id,limittype,minimum_amt,maximum_amt) values " & _
-                                                                                                "(@customer_id,1,1," & regularCharges & "," & regularCharges & ")"
-                                    mCommand.ExecuteNonQuery()
-                                End If
+                                    If hasRegularCharges = "Y" Then
+                                        mCommand.CommandText = "insert into customer_allowablecharges (customer_id,chargetype_id,limittype,minimum_amt,maximum_amt) values " & _
+                                                                                                    "(@customer_id,1,1," & regularCharges & "," & regularCharges & ")"
+                                        mCommand.ExecuteNonQuery()
+                                    End If
 
-                                If hasRegularSubsidy = "Y" Then
-                                    mCommand.CommandText = "insert into customer_allowablecharges (customer_id,chargetype_id,limittype,minimum_amt,maximum_amt) values " & _
-                                                                                                "(@customer_id,2,0," & regularSubsidy & "," & regularSubsidy & ")"
-                                    mCommand.ExecuteNonQuery()
-                                End If
+                                    If hasRegularSubsidy = "Y" Then
+                                        mCommand.CommandText = "insert into customer_allowablecharges (customer_id,chargetype_id,limittype,minimum_amt,maximum_amt) values " & _
+                                                                                                    "(@customer_id,2,0," & regularSubsidy & "," & regularSubsidy & ")"
+                                        mCommand.ExecuteNonQuery()
+                                    End If
 
-                                If hasOtSubsidy = "Y" Then
-                                    mCommand.CommandText = "insert into customer_allowablecharges (customer_id,chargetype_id,limittype,minimum_amt,maximum_amt) values " & _
-                                                                                                "(@customer_id,3,0," & otSubsidy & "," & otSubsidy & ")"
-                                    mCommand.ExecuteNonQuery()
+                                    If hasOtSubsidy = "Y" Then
+                                        mCommand.CommandText = "insert into customer_allowablecharges (customer_id,chargetype_id,limittype,minimum_amt,maximum_amt) values " & _
+                                                                                                    "(@customer_id,3,0," & otSubsidy & "," & otSubsidy & ")"
+                                        mCommand.ExecuteNonQuery()
+                                    End If
+
                                 End If
 
                             Next
